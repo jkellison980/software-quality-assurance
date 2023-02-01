@@ -1,0 +1,4 @@
+# FILE: .bandit
+[bandit]
+exclude = /Users/jeremyellison/Desktop/software-quality-assurance/software-quality-assurance/workshops/workshop1/test.py
+targets = /Users/jeremyellison/Desktop/software-quality-assurance/software-quality-assurance/workshops/workshop1/source.py 
