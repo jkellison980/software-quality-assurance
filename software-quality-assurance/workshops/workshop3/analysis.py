@@ -158,41 +158,51 @@ def getFunctionDefinitions(path2program):
                  
     return call_sequence_ls, func_var_list 
 
-
+'''
+full_tree  > fullVarList/call_list
+fullVarList > var_df > var_
+call_list > call_df > call_
+funcDefList > func_def_df > func_def
+funcvarList > func_var_df > func_var
+data > val2track
+'''
 def trackTaint(val2track, df_list_param): 
     var_, call_, func_def, func_var = df_list_param[0], df_list_param[1], df_list_param[2], df_list_param[3]
     
-    trace_taint = {}
+    #variable declarations
+    traceTaint = {}
+    traceFunction = {}
+    traceGeneric = [str(val2track)]
+
+    #checking variables
     for variable in var_:
+
         if isinstance(variable[1], int):
-            trace_taint[variable[1]] = variable[0]
+            traceTaint[variable[1]] = variable[0]
         elif isinstance(variable[1], str) and "," not in variable[1]:
-            trace_taint[variable[1]] = variable[0]
+            traceTaint[variable[1]] = variable[0]
         elif isinstance(variable[1], str):
-            for substitute_var in variable[1][1:].split(","):
-                trace_taint[substitute_var] = variable[0]
+            for variable2 in variable[1][1:].split(","):
+                traceTaint[variable2] = variable[0]
 
-    function_trace = {}
-    for dec in func_def:
-        function_trace[dec[2][-1]] = dec[1]
-    for call in call_:
-        trace_taint[call[2]] = function_trace[call[3][-1]]
+    #checking function definition and calls
+    for funcDef in func_def:
+        traceFunction[funcDef[2][-1]] = funcDef[1]
+    for funcCall in call_:
+        traceTaint[funcCall[2]] = traceFunction[funcCall[3][-1]]
+    
+    #while there is something, append the value cast to string to generic
+    while traceTaint.get(val2track):
+        traceGeneric.append(str(traceTaint[val2track]))
+        val2track = traceTaint[val2track]
+    
+    #print out final string of while loop concatenation above
+    print("->".join(traceGeneric))
 
-    trace = [str(val2track)]
-    while trace_taint.get(val2track):
-        trace.append(str(trace_taint[val2track]))
-        val2track = trace_taint[val2track]
-    print('->'.join(trace))
-
-
-    brk = '........................................'
-    print('{brk}\n\n{brk}')
-    print(f'var_:{var_}\n{brk}\ncall_:{call_}\n{brk}\nfunc_def:{func_def}\n{brk}\nfunc_var:{func_var}\n{brk}\n')
-     
 
 
 def checkFlow(data, code):
-    full_tree = None
+    full_tree = None 
     if os.path.exists( code ):
        full_tree = ast.parse( open( code  ).read() )  
        # First let us obtain the variables in forms of expressions 
@@ -200,7 +210,7 @@ def checkFlow(data, code):
        # Next let us get function invocations by looking into function calls
        call_list = getFunctionAssignments( full_tree ) 
        # Now let us look into the body of the function and see of the parameter is used
-       funcDefList, funcvarList = getFunctionDefinitions( code  )  
+       funcDefList, funcvarList = getFunctionDefinitions( code  )      
        #For the workshop please use fullVarList, call_list, funcDefList, funcvarList
        # Then print a path like the following: 
        # 1000->val1->v1->res 
@@ -208,12 +218,9 @@ def checkFlow(data, code):
        call_df      = pd.DataFrame( call_list, columns =['LHS', 'FUNC_NAME', 'ARG_NAME', 'TYPE']   )
        func_def_df  = pd.DataFrame( funcDefList, columns =['FUNC_NAME', 'ARG_NAME', 'TYPE']   )
        func_var_df  = pd.DataFrame( funcvarList, columns =['LHS', 'RHS', 'TYPE']   )
-
        info_df_list = [var_df, call_df, func_def_df, func_var_df]
+       info_df_list = [fullVarList,call_list,funcDefList,funcvarList]
        trackTaint( data , info_df_list ) 
-
-
-       
 
 
 if __name__=='__main__':
